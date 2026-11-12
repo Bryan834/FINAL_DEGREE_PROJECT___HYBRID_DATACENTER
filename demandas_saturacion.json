@@ -1,0 +1,40 @@
+{
+    "connections": [
+      {
+        "id": "CONN-01",
+        "sourceVM": { "id": "VM-01", "xpu": 1, "ram": 2, "disk": 20 },
+        "targetVM": { "id": "VM-02", "xpu": 1, "ram": 2, "disk": 20 },
+        "requiredBandwidth": 7.0
+      },
+      {
+        "id": "CONN-02",
+        "sourceVM": { "id": "VM-03", "xpu": 1, "ram": 2, "disk": 20 },
+        "targetVM": { "id": "VM-04", "xpu": 1, "ram": 2, "disk": 20 },
+        "requiredBandwidth": 7.0
+      },
+      {
+        "id": "CONN-03",
+        "sourceVM": { "id": "VM-05", "xpu": 1, "ram": 2, "disk": 20 },
+        "targetVM": { "id": "VM-06", "xpu": 1, "ram": 2, "disk": 20 },
+        "requiredBandwidth": 7.0
+      },
+      {
+        "id": "CONN-04",
+        "sourceVM": { "id": "VM-07", "xpu": 1, "ram": 2, "disk": 20 },
+        "targetVM": { "id": "VM-08", "xpu": 1, "ram": 2, "disk": 20 },
+        "requiredBandwidth": 7.0
+      },
+      {
+        "id": "CONN-05",
+        "sourceVM": { "id": "VM-09", "xpu": 1, "ram": 2, "disk": 20 },
+        "targetVM": { "id": "VM-10", "xpu": 1, "ram": 2, "disk": 20 },
+        "requiredBandwidth": 2.5
+      },
+      {
+        "id": "CONN-06",
+        "sourceVM": { "id": "VM-11", "xpu": 1, "ram": 2, "disk": 20 },
+        "targetVM": { "id": "VM-12", "xpu": 1, "ram": 2, "disk": 20 },
+        "requiredBandwidth": 5.0
+      }
+    ]
+  }

@@ -1,5 +1,7 @@
 package demand;
 
+import java.util.Objects;
+
 public class VM {
     private String id;
     private int xpu;
@@ -27,6 +29,19 @@ public class VM {
 
     public int getDisk() { return disk; }
     public void setDisk(int disk) { this.disk = disk; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VM vm = (VM) o;
+        return Objects.equals(id, vm.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 
     @Override
     public String toString() {

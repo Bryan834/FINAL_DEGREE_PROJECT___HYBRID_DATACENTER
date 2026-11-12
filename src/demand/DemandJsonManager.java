@@ -22,6 +22,9 @@ public class DemandJsonManager {
         Gson gson = new Gson();
         try (FileReader reader = new FileReader(filePath)) {
             Demand demand = gson.fromJson(reader, Demand.class);
+            if (demand != null) {
+                demand.normalize();
+            }
             System.out.println("[JSON] Demanda cargada desde: " + filePath);
             return demand;
         } catch (IOException e) {

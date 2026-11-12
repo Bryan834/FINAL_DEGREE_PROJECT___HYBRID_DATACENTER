@@ -18,8 +18,8 @@ public class Route {
         this.links = new ArrayList<>();
     }
 
-    public void addNode(Node node) { nodes.add(node); }
-    public void addLink(Link link) { links.add(link); }
+    public void addNode(Node node) { this.nodes.add(node); }
+    public void addLink(Link link) { this.links.add(link); }
 
     public Node getSource() { return source; }
     public Node getDestination() { return destination; }
@@ -28,6 +28,23 @@ public class Route {
 
     public int getHopCount() {
         return links.size();
+    }
+
+    public boolean hasOpticalLinks() {
+        for (Link link : links) {
+            if (link.isOptical()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public double getTotalWeight() {
+        double total = 0.0;
+        for (Link link : links) {
+            total += link.getWeight();
+        }
+        return total;
     }
 
     @Override

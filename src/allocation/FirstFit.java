@@ -1,17 +1,31 @@
 package allocation;
 
-import datacenter.*;
-import demand.*;
-import routing.*;
-import java.util.ArrayList;
+import datacenter.DataCenter;
+import datacenter.Link;
+import datacenter.Server;
+import demand.Demand;
+import demand.VM;
+import demand.VMConnection;
+import routing.Route;
+import routing.Routing;
+import routing.WavelengthAssignment;
+
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class FirstFit {
+public class FirstFit implements AllocationAlgorithm {
 
+    @Override
+    public String getName() {
+        return "First-Fit (Consolidación)";
+    }
+
+    @Override
     public AllocationResult execute(DataCenter datacenter, Demand demand) {
         AllocationResult result = new AllocationResult(demand.getConnections().size());
-        List<Rack> racks = datacenter.getRacks();
+        Map<VM, Server> vmPlacement = new HashMap<>();
 
         for (VMConnection conn : demand.getConnections()) {
             VM vm1 = conn.getSourceVM();
@@ -20,100 +34,89 @@ public class FirstFit {
 
             boolean allocated = false;
 
-            // 1. Generar todos los pares posibles de Racks distintos (Inter-Rack obligatorio)
-            List<RackPair> rackPairs = new ArrayList<>();
-            for (Rack r1 : racks) {
-                for (Rack r2 : racks) {
-                    if (!r1.getId().equals(r2.getId())) {
-                        rackPairs.add(new RackPair(r1, r2));
+            List<Server> candidatesS1 = vmPlacement.containsKey(vm1)
+                    ? Collections.singletonList(vmPlacement.get(vm1))
+                    : datacenter.getServers();
+
+            for (Server s1 : candidatesS1) {
+                boolean vm1Placed = vmPlacement.containsKey(vm1);
+                if (!vm1Placed && !s1.canHost(vm1)) continue;
+
+                List<Server> candidatesS2 = vmPlacement.containsKey(vm2)
+                        ? Collections.singletonList(vmPlacement.get(vm2))
+                        : datacenter.getServers();
+
+                for (Server s2 : candidatesS2) {
+                    boolean vm2Placed = vmPlacement.containsKey(vm2);
+
+                    if (!vm1Placed && !vm2Placed && s1.equals(s2)) {
+                        if (!canHostBoth(s1, vm1, vm2)) continue;
+                    } else if (!vm2Placed && !s2.canHost(vm2)) {
+                        continue;
                     }
-                }
-            }
 
-            // 2. Aleatorizar la selección de los Racks origen y destino
-            Collections.shuffle(rackPairs);
-
-            // 3. Probar las parejas de racks elegidas de forma aleatoria
-            for (RackPair pair : rackPairs) {
-                Rack rackOrigen = pair.r1;
-                Rack rackDestino = pair.r2;
-
-                // 3a. FIRST-FIT en Rack Origen: primer servidor con cómputo + red suficiente
-                Server s1 = null;
-                Link linkS1 = null;
-                for (Server s : rackOrigen.getServers()) {
-                    if (s.canHost(vm1)) {
-                        Link l = getAccessLink(datacenter, s);
-                        if (l == null || l.hasAvailableBandwidth(reqBw)) {
-                            s1 = s;
-                            linkS1 = l;
-                            break; // Primer servidor encontrado en el Rack origen
-                        }
+                    // Caso 1: Mismo servidor -> Tráfico local (0 red, 0 RWA)
+                    if (s1.equals(s2)) {
+                        if (!vm1Placed) { s1.allocateVM(vm1); vmPlacement.put(vm1, s1); }
+                        if (!vm2Placed) { s2.allocateVM(vm2); vmPlacement.put(vm2, s2); }
+                        result.incrementAllocated();
+                        allocated = true;
+                        System.out.println("[FirstFit] " + conn.getId() + " (" + vm1.getId() + " <-> " + vm2.getId()
+                                + ") -> ASIGNADA (Local en " + s1.getId() + ")");
+                        break;
                     }
-                }
-                if (s1 == null) continue; // Probar siguiente pareja de racks si este rack origen no tiene hueco
 
-                // 3b. FIRST-FIT en Rack Destino: primer servidor con cómputo + red suficiente
-                Server s2 = null;
-                Link linkS2 = null;
-                for (Server s : rackDestino.getServers()) {
-                    if (s.canHost(vm2)) {
-                        Link l = getAccessLink(datacenter, s);
-                        if (l == null || l.hasAvailableBandwidth(reqBw)) {
-                            s2 = s;
-                            linkS2 = l;
-                            break; // Primer servidor encontrado en el Rack destino
-                        }
+                    // Caso 2: Servidores distintos -> Path Computation + RWA si hay tramos ópticos
+                    Route route = Routing.findRoute(datacenter, s1, s2);
+                    if (route == null || !hasElectricalBandwidth(route, reqBw)) continue;
+
+                    int assignedLambda = 0;
+                    boolean opticalRoute = route.hasOpticalLinks();
+                    if (opticalRoute) {
+                        assignedLambda = WavelengthAssignment.allocateWavelength(route, reqBw);
+                        if (assignedLambda == -1) continue;
                     }
+
+                    if (!vm1Placed) { s1.allocateVM(vm1); vmPlacement.put(vm1, s1); }
+                    if (!vm2Placed) { s2.allocateVM(vm2); vmPlacement.put(vm2, s2); }
+                    reserveElectricalBandwidth(route, reqBw);
+
+                    result.incrementAllocated();
+                    allocated = true;
+                    System.out.println("[FirstFit] " + conn.getId() + " (" + vm1.getId() + " <-> " + vm2.getId() + ") -> ASIGNADA");
+                    System.out.println("           Servidores: " + s1.getId() + " (" + s1.getFailureDomain() + ") <-> "
+                            + s2.getId() + " (" + s2.getFailureDomain() + ")");
+                    System.out.println("           " + route + (opticalRoute ? " | Lambda: L" + assignedLambda : " | Eléctrica"));
+                    break;
                 }
-                if (s2 == null) continue; // Probar siguiente pareja de racks
-
-                // 4. Evaluar Ruta Física y RWA en los enlaces ópticos ToR-Spine
-                Route route = Routing.findRoute(datacenter, s1, s2);
-                if (route == null) continue;
-
-                int assignedLambda = WavelengthAssignment.allocateWavelength(route, reqBw);
-                if (assignedLambda == -1) continue; // Sin recursos ópticos disponibles
-
-                // Asignar definitivamente los recursos
-                s1.allocateVM(vm1);
-                s2.allocateVM(vm2);
-                if (linkS1 != null) linkS1.reserveBandwidth(reqBw);
-                if (linkS2 != null) linkS2.reserveBandwidth(reqBw);
-
-                result.incrementAllocated();
-                allocated = true;
-
-                System.out.println("[RandomRack+FirstFit] " + conn.getId() + " (" + vm1.getId() + " <-> " + vm2.getId() + ") -> ASIGNADA");
-                System.out.println("                      Racks (Random): Origen=" + rackOrigen.getId() + " | Destino=" + rackDestino.getId());
-                System.out.println("                      Servidores (First-Fit): Origen=" + s1.getId() + " | Destino=" + s2.getId());
-                System.out.println("                      Lambda ToR-Spine: L" + assignedLambda);
-                break;
+                if (allocated) break;
             }
 
             if (!allocated) {
-                System.out.println("[RandomRack+FirstFit] " + conn.getId() + " RECHAZADA -> Sin capacidad en Cómputo/Red/RWA");
+                System.out.println("[FirstFit] " + conn.getId() + " -> RECHAZADA (Sin recursos)");
                 result.incrementRejected();
             }
         }
-
         return result;
     }
 
-    private Link getAccessLink(DataCenter dc, Server server) {
-        for (Link link : dc.getLinks()) {
-            if (!link.isOptical() && (link.getSource().getId().equals(server.getId()) || link.getDestination().getId().equals(server.getId()))) {
-                return link;
-            }
-        }
-        return null;
+    private boolean canHostBoth(Server server, VM vm1, VM vm2) {
+        return server.isActive()
+                && server.getAvailableXpu() >= (vm1.getXpu() + vm2.getXpu())
+                && server.getAvailableRam() >= (vm1.getRam() + vm2.getRam())
+                && server.getAvailableDisk() >= (vm1.getDisk() + vm2.getDisk());
     }
 
-    private static class RackPair {
-        Rack r1, r2;
-        RackPair(Rack r1, Rack r2) {
-            this.r1 = r1;
-            this.r2 = r2;
+    private boolean hasElectricalBandwidth(Route route, double reqBw) {
+        for (Link link : route.getLinks()) {
+            if (!link.isOptical() && !link.hasAvailableBandwidth(reqBw)) return false;
+        }
+        return true;
+    }
+
+    private void reserveElectricalBandwidth(Route route, double reqBw) {
+        for (Link link : route.getLinks()) {
+            if (!link.isOptical()) link.reserveBandwidth(reqBw);
         }
     }
 }

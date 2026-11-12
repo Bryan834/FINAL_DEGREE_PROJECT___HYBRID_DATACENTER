@@ -10,6 +10,7 @@ public class Server extends Node {
     private int disk;
     private NodeType type;
     private boolean active;
+    private String failureDomain; // Ej: "ZONA-A", "ZONA-B", "SALA-1"
 
     private int usedXpu;
     private int usedRam;
@@ -17,9 +18,14 @@ public class Server extends Node {
     private List<VM> hostedVMs;
 
     public Server(String id) {
+        this(id, "DEFAULT");
+    }
+
+    public Server(String id, String failureDomain) {
         super(id);
         this.type = NodeType.Server;
         this.active = true;
+        this.failureDomain = (failureDomain != null) ? failureDomain : "DEFAULT";
         this.hostedVMs = new ArrayList<>();
     }
 
@@ -55,6 +61,9 @@ public class Server extends Node {
         return false;
     }
 
+    public String getFailureDomain() { return failureDomain; }
+    public void setFailureDomain(String failureDomain) { this.failureDomain = failureDomain; }
+
     public int getXpu() { return xpu; }
     public void setXpu(int xpu) { this.xpu = xpu; }
 
@@ -77,10 +86,11 @@ public class Server extends Node {
 
     @Override
     public String toString() {
-        return "Server " + getId() + " [Estado: " + (active ? "ACTIVO" : "INACTIVO") +
+        return "Server " + getId() + " [Dominio: " + failureDomain +
+               " | Estado: " + (active ? "ACTIVO" : "INACTIVO") +
                " | XPU: " + usedXpu + "/" + xpu +
                " | RAM: " + usedRam + "/" + ram + " GB" +
                " | Disco: " + usedDisk + "/" + disk + " GB" +
-               " | VMs alojadas: " + hostedVMs.size() + "]";
+               " | VMs: " + hostedVMs.size() + "]";
     }
 }

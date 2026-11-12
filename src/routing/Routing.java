@@ -3,69 +3,53 @@ package routing;
 import datacenter.DataCenter;
 import datacenter.Link;
 import datacenter.Node;
-import java.util.*;
+import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
+import org.jgrapht.graph.WeightedMultigraph;
 
 public class Routing {
 
     public static Route findRoute(DataCenter dc, Node source, Node destination) {
-        if (source.getId().equals(destination.getId())) {
-            Route r = new Route(source, destination);
-            r.addNode(source);
-            return r;
+        if (dc == null || source == null || destination == null) {
+            return null;
         }
 
-        Queue<Node> queue = new LinkedList<>();
-        Map<Node, Node> parentNode = new HashMap<>();
-        Map<Node, Link> parentLink = new HashMap<>();
-        Set<Node> visited = new HashSet<>();
+        if (source.equals(destination)) {
+            Route localRoute = new Route(source, destination);
+            localRoute.addNode(source);
+            return localRoute;
+        }
 
-        queue.add(source);
-        visited.add(source);
+        Graph<Node, Link> graph = new WeightedMultigraph<>(Link.class);
 
-        boolean found = false;
+        for (Node node : dc.getNodes()) {
+            graph.addVertex(node);
+        }
 
-        while (!queue.isEmpty()) {
-            Node current = queue.poll();
-            if (current.getId().equals(destination.getId())) {
-                found = true;
-                break;
-            }
-
-            for (Link link : dc.getLinks()) {
-                Node neighbor = null;
-                if (link.getSource().getId().equals(current.getId())) {
-                    neighbor = link.getDestination();
-                } else if (link.getDestination().getId().equals(current.getId())) {
-                    neighbor = link.getSource();
-                }
-
-                if (neighbor != null && !visited.contains(neighbor)) {
-                    visited.add(neighbor);
-                    parentNode.put(neighbor, current);
-                    parentLink.put(neighbor, link);
-                    queue.add(neighbor);
-                }
+        for (Link link : dc.getLinks()) {
+            if (link.getSource() != null && link.getDestination() != null
+                    && !link.getSource().equals(link.getDestination())) {
+                graph.addEdge(link.getSource(), link.getDestination(), link);
+                graph.setEdgeWeight(link, link.getWeight());
             }
         }
 
-        if (!found) return null;
+     
+        DijkstraShortestPath<Node, Link> dijkstra = new DijkstraShortestPath<>(graph);
+        GraphPath<Node, Link> shortestPath = dijkstra.getPath(source, destination);
 
-        List<Node> nodePath = new ArrayList<>();
-        List<Link> linkPath = new ArrayList<>();
-        Node curr = destination;
-
-        while (curr != null) {
-            nodePath.add(0, curr);
-            Link l = parentLink.get(curr);
-            if (l != null) {
-                linkPath.add(0, l);
-            }
-            curr = parentNode.get(curr);
+        if (shortestPath == null) {
+            return null; 
         }
 
         Route route = new Route(source, destination);
-        for (Node n : nodePath) route.addNode(n);
-        for (Link l : linkPath) route.addLink(l);
+        for (Node n : shortestPath.getVertexList()) {
+            route.addNode(n);
+        }
+        for (Link l : shortestPath.getEdgeList()) {
+            route.addLink(l);
+        }
 
         return route;
     }

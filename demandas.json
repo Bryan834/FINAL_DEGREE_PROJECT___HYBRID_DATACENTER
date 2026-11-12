@@ -1,0 +1,28 @@
+{
+  "connections": [
+    {
+      "id": "CONN-01",
+      "sourceVM": { "id": "VM-01", "xpu": 2, "ram": 4, "disk": 50 },
+      "targetVM": { "id": "VM-02", "xpu": 2, "ram": 4, "disk": 50 },
+      "requiredBandwidth": 6.0
+    },
+    {
+      "id": "CONN-02",
+      "sourceVM": { "id": "VM-03", "xpu": 2, "ram": 4, "disk": 50 },
+      "targetVM": { "id": "VM-04", "xpu": 2, "ram": 4, "disk": 50 },
+      "requiredBandwidth": 4.0
+    },
+    {
+      "id": "CONN-03",
+      "sourceVM": { "id": "VM-05", "xpu": 2, "ram": 4, "disk": 50 },
+      "targetVM": { "id": "VM-06", "xpu": 2, "ram": 4, "disk": 50 },
+      "requiredBandwidth": 3.0
+    },
+    {
+      "id": "CONN-04",
+      "sourceVM": { "id": "VM-07", "xpu": 4, "ram": 8, "disk": 100 },
+      "targetVM": { "id": "VM-08", "xpu": 4, "ram": 8, "disk": 100 },
+      "requiredBandwidth": 5.0
+    }
+  ]
+}

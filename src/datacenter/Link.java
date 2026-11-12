@@ -4,30 +4,41 @@ public class Link {
     private String id;
     private Node source;
     private Node destination;
-    private double bandwidth;                  // Capacidad total nominal del enlace
-    private double usedBandwidth;              // Ancho de banda ocupado (Enlaces Servidor-ToR)
-    private boolean optical;                   // true si es enlace ToR-Spine
-    private int numWavelengths;                // 40 interfaces / lambdas
-    private double wavelengthCapacity;         // 10.0 Gbps por lambda
+    private double weight;                     // Coste/latencia del enlace para Path Computation
+    private double bandwidth;                  // Capacidad total en Gbps
+    private double usedBandwidth;              // Ancho de banda ocupado (enlaces eléctricos)
+    private boolean optical;                   // true = enlace óptico WDM, false = enlace eléctrico
+    private int numWavelengths;                // Número de canales (lambdas) disponibles
+    private double wavelengthCapacity;         // Capacidad en Gbps de cada lambda
     private double[] wavelengthsUsedBandwidth; // Ocupación individual de cada lambda
 
-    // Constructor Enlaces Servidor-ToR (Fibra de 1 Gbps)
+    // Constructor para enlaces eléctricos / clásicos
     public Link(String id, Node source, Node destination, double bandwidth) {
+        this(id, source, destination, bandwidth, 1.0);
+    }
+
+    public Link(String id, Node source, Node destination, double bandwidth, double weight) {
         this.id = id;
         this.source = source;
         this.destination = destination;
         this.bandwidth = bandwidth;
+        this.weight = weight;
         this.usedBandwidth = 0;
         this.optical = false;
         this.numWavelengths = 0;
         this.wavelengthCapacity = 0;
     }
 
-    // Constructor Enlaces Ópticos ToR-Spine (40 Lambdas x 10 Gbps)
+    // Constructor para enlaces ópticos WDM (con N lambdas de capacidad C)
     public Link(String id, Node source, Node destination, int numWavelengths, double wavelengthCapacity) {
+        this(id, source, destination, numWavelengths, wavelengthCapacity, 1.0);
+    }
+
+    public Link(String id, Node source, Node destination, int numWavelengths, double wavelengthCapacity, double weight) {
         this.id = id;
         this.source = source;
         this.destination = destination;
+        this.weight = weight;
         this.optical = true;
         this.numWavelengths = numWavelengths;
         this.wavelengthCapacity = wavelengthCapacity;
@@ -38,12 +49,13 @@ public class Link {
     public String getId() { return id; }
     public Node getSource() { return source; }
     public Node getDestination() { return destination; }
+    public double getWeight() { return weight; }
+    public void setWeight(double weight) { this.weight = weight; }
     public double getBandwidth() { return bandwidth; }
     public boolean isOptical() { return optical; }
     public int getNumWavelengths() { return numWavelengths; }
     public double getWavelengthCapacity() { return wavelengthCapacity; }
 
-    // Control para Enlaces Servidor-ToR (1 Gbps)
     public boolean hasAvailableBandwidth(double reqBw) {
         if (!optical) return (bandwidth - usedBandwidth) >= reqBw;
         return true;
@@ -57,7 +69,6 @@ public class Link {
         if (!optical) usedBandwidth = Math.max(0, usedBandwidth - reqBw);
     }
 
-    // Control para Enlaces Ópticos WDM (Traffic Grooming)
     public boolean isLambdaAvailable(int lambda, double reqBw) {
         if (!optical || lambda < 0 || lambda >= numWavelengths) return false;
         return (wavelengthCapacity - wavelengthsUsedBandwidth[lambda]) >= reqBw;
@@ -91,22 +102,23 @@ public class Link {
 
     @Override
     public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Enlace ").append(id);
         if (source != null && destination != null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Enlace ").append(id).append(" (").append(source.getId()).append(" <-> ").append(destination.getId()).append(")");
-            if (optical) {
-                sb.append(" | ÓPTICO WDM (40 Lambdas x 10G) - Canales Activos: ")
-                  .append(getOccupiedWavelengthsCount()).append("/").append(numWavelengths).append(" [");
-                for (int i = 0; i < numWavelengths; i++) {
-                    sb.append(wavelengthsUsedBandwidth[i] > 0 ? "X" : "-");
-                }
-                sb.append("]");
-            } else {
-                sb.append(" | Estándar Servidor-ToR (1 Gbps) - Uso: ")
-                  .append(String.format("%.2f", usedBandwidth)).append("/").append(bandwidth).append(" Gbps");
-            }
-            return sb.toString();
+            sb.append(" (").append(source.getId()).append(" <-> ").append(destination.getId()).append(")");
         }
-        return "Enlace " + id;
+        if (optical) {
+            sb.append(" | ÓPTICO WDM (").append(numWavelengths).append(" lambdas x ")
+              .append(wavelengthCapacity).append(" Gbps) - Activas: ")
+              .append(getOccupiedWavelengthsCount()).append("/").append(numWavelengths).append(" [");
+            for (int i = 0; i < numWavelengths; i++) {
+                sb.append(wavelengthsUsedBandwidth[i] > 0 ? "X" : "-");
+            }
+            sb.append("]");
+        } else {
+            sb.append(" | ELÉCTRICO (").append(bandwidth).append(" Gbps) - Uso: ")
+              .append(String.format("%.2f", usedBandwidth)).append("/").append(bandwidth).append(" Gbps");
+        }
+        return sb.toString();
     }
 }
