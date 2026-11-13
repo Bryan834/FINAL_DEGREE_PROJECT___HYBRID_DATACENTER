@@ -1,0 +1,31 @@
+{
+    "servers": [
+      { "id": "SRV-1", "failureDomain": "ZONA-A", "xpu": 16, "ram": 64, "disk": 500 },
+      { "id": "SRV-3", "failureDomain": "ZONA-A", "xpu": 16, "ram": 64, "disk": 500 },
+      { "id": "SRV-2", "failureDomain": "ZONA-B", "xpu": 16, "ram": 64, "disk": 500 },
+      { "id": "SRV-4", "failureDomain": "ZONA-B", "xpu": 16, "ram": 64, "disk": 500 }
+    ],
+    "switches": [
+      { "id": "SW-1" },
+      { "id": "SW-2" },
+      { "id": "OPT-1" },
+      { "id": "OPT-2" },
+      { "id": "OPT-3" },
+      { "id": "OPT-4" }
+    ],
+    "links": [
+      { "id": "LNK-SRV1-SW1", "source": "SRV-1", "target": "SW-1", "type": "ELECTRICAL", "bandwidth": 20.0 },
+      { "id": "LNK-SRV3-SW1", "source": "SRV-3", "target": "SW-1", "type": "ELECTRICAL", "bandwidth": 20.0 },
+      { "id": "LNK-SW2-SRV2", "source": "SW-2", "target": "SRV-2", "type": "ELECTRICAL", "bandwidth": 20.0 },
+      { "id": "LNK-SW2-SRV4", "source": "SW-2", "target": "SRV-4", "type": "ELECTRICAL", "bandwidth": 20.0 },
+  
+      { "id": "OPT-SW1-OPT1",  "source": "SW-1",  "target": "OPT-1", "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-SW1-OPT3",  "source": "SW-1",  "target": "OPT-3", "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-OPT1-OPT2", "source": "OPT-1", "target": "OPT-2", "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-OPT3-OPT4", "source": "OPT-3", "target": "OPT-4", "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-OPT1-OPT3", "source": "OPT-1", "target": "OPT-3", "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-OPT2-OPT4", "source": "OPT-2", "target": "OPT-4", "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-OPT2-SW2",  "source": "OPT-2", "target": "SW-2",  "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 },
+      { "id": "OPT-OPT4-SW2",  "source": "OPT-4", "target": "SW-2",  "type": "OPTICAL", "lambdas": 4, "capacityPerLambda": 10.0 }
+    ]
+  }
